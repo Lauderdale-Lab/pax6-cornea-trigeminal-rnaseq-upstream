@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+title: >-
+  Upstream processing pipeline (FASTQ to gene counts) for the
+  Pax6 mouse cornea and trigeminal ganglion RNA-seq
+message: >-
+  If you use this software, please cite it and the paper whose
+  analysis you are reproducing.
+type: software
+authors:
+  - given-names: James D.
+    family-names: Lauderdale
+    affiliation: >-
+      Department of Cellular Biology, University of Georgia,
+      Athens, GA 30602, USA
+    email: jdlauder@uga.edu
+    orcid: 'https://orcid.org/0000-0001-7503-0528'
+  - given-names: Sneha K.
+    family-names: Mohan
+    affiliation: >-
+      Department of Cellular Biology, University of Georgia,
+      Athens, GA 30602, USA
+repository-code: 'https://github.com/Lauderdale-Lab/pax6-cornea-trigeminal-rnaseq-upstream'
+abstract: >-
+  Manifest-driven SLURM pipeline for read QC and trimming
+  (Trimmomatic), alignment (HISAT2, GRCm38), measured
+  strandedness, and fragment-level gene counting (featureCounts,
+  GENCODE vM25), producing the count matrices analysed in
+  pax6-cornea-nerve-vascular-transparency,
+  pax6-adult-cornea-transcriptome and
+  pax6-cornea-development-transcriptome.
+keywords:
+  - RNA-seq
+  - HISAT2
+  - featureCounts
+  - cornea
+  - Pax6
+license: MIT
+version: 1.0.0
