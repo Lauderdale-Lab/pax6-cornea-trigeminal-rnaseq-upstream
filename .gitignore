@@ -1,1 +1,23 @@
+# Data and outputs never belong in this repository
+*.fastq
+*.fastq.gz
+*.fq
+*.fq.gz
+*.sam
+*.bam
+*.bai
+*.ht2
+*.fa
+*.fa.gz
+*.fasta
+*.gtf
+*.gtf.gz
+*.vcf
+*.vcf.gz
 
+# SLURM logs
+*.out
+*.err
+logs/
+
+.DS_Store
