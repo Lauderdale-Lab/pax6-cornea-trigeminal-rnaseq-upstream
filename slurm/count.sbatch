@@ -17,6 +17,8 @@
 set -euo pipefail
 # shellcheck source=../lib/common.sh
 source "$PAX6_HOME/lib/common.sh"
+# shellcheck source=../lib/provenance.sh
+source "$PAX6_HOME/lib/provenance.sh"
 load_run "$PAX6_RUN"
 STUDY="$PAX6_STUDY"
 require_study "$STUDY"
@@ -24,13 +26,14 @@ OUT=$(counts_dir "$STUDY")
 [[ -e "$OUT/featureCounts.txt" ]] && die "$OUT/featureCounts.txt exists. Counts are never overwritten; start a new run."
 mkdir -p "$OUT"
 load_modules Subread SAMtools
+record_versions count Subread SAMtools
 
 # --- every dataset: measured == recorded, and all agree ---------------------
 STRAND=""; LAYOUT=""; BAMS=(); : > "$OUT/sample_map.tsv.tmp"
 while read -r DS; do
   R="$(strand_dir "$DS")/RESULT.tsv"
   [[ -s "$R" ]] || die "$DS: no strand result in this run ($R). Run: bin/pax6 submit $RUN $DS"
-  read -r ML MS < <(sed -n 2p "$R")
+  IFS=$'\t' read -r ML MS _ < <(sed -n 2p "$R")
   RL=$(dataset_field "$DS" layout); RS=$(dataset_field "$DS" strand)
   [[ "$ML" == "$RL" && "$MS" == "$RS" ]] || die "$DS: measured layout=$ML strand=$MS but config/datasets.tsv says layout=$RL strand=$RS.
         Correct config/datasets.tsv (and commit it), or investigate. Do not count until they agree."
@@ -89,6 +92,8 @@ awk -F'\t' 'NR == 1 { next }
 # --- quality gate ------------------------------------------------------------
 assignment_table "$OUT/featureCounts.txt.summary" > "$OUT/assignment_qc.tsv"
 print_table "$OUT/assignment_qc.tsv"
+write_provenance "$STUDY" "$OUT"
+log "provenance: $OUT/provenance/   (Methods draft: provenance/METHODS.md)"
 LOW=$(awk -F'\t' -v m="$MIN_ASSIGN_RATIO" 'NR > 1 && $4 < m { print $1 }' "$OUT/assignment_qc.tsv")
 log "matrix: $OUT/gene_counts.tsv"
 if [[ -n "$LOW" ]]; then

@@ -23,6 +23,7 @@ BAM="$ALN/${SAMPLE}.bam"
 log "$RUN / $DATASET / $SAMPLE  ->  $ASSEMBLY ($INDEX_TYPE index)"
 
 load_modules HISAT2 SAMtools
+record_versions align HISAT2 SAMtools
 if bam_ok "$BAM"; then log "BAM present and verified; nothing to do"; exit 0; fi
 rm -f "$BAM" "$BAM.bai"
 

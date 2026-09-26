@@ -15,8 +15,10 @@
 │   ├── jobs.tsv               every job submitted, by dataset
 │   ├── logs/                  SLURM output of every job
 │   ├── reference/             splice sites extracted for this run
+│   ├── provenance/versions/   what each job's tools reported, one file per job
 │   ├── <dataset>/
 │   │   ├── samples.tsv        the libraries, in array-task order
+│   │   ├── checksums/         MD5 of each library's raw FASTQ
 │   │   ├── trimmed/           <id>_1.fq.gz, <id>_2.fq.gz, <id>.done
 │   │   ├── qc/                raw/ trimmed/ FastQC; adapters/; trimmomatic/ logs
 │   │   ├── align/             <id>.bam, .bai, <id>.hisat2.txt
@@ -27,7 +29,9 @@
 │       ├── featureCounts.txt  raw featureCounts output (+ .summary)
 │       ├── sample_map.tsv     sample_id, study, dataset, batch, BAM
 │       ├── assignment_qc.tsv  per-library assignment rates
-│       └── PROVENANCE.tsv     run, commit, build, strand, command, matrix MD5
+│       ├── PROVENANCE.tsv     run, commit, build, strand, command, matrix MD5
+│       └── provenance/        software_versions, reference (MD5s), inputs (raw
+│                              FASTQ MD5s), library_qc, strand, METHODS.md
 └── archive/                   superseded outputs, never read by the pipeline
 ```
 

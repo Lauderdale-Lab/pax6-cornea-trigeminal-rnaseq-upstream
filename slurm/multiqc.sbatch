@@ -15,7 +15,7 @@ source "$PAX6_HOME/lib/common.sh"
 load_run "$PAX6_RUN"
 DATASET="$PAX6_DATASET"
 load_modules MultiQC
-multiqc --version
+record_versions multiqc MultiQC
 # -d -dd 1 prefixes each sample with its folder (raw | trimmed | align).
 # Raw and trimmed FastQC reports otherwise share sample names and MultiQC
 # would keep only one of each pair.

@@ -19,7 +19,7 @@ expect_ok()   { local d="$1"; shift; local o; if o=$("$@" 2>&1); then ok "$d"; e
 expect_fail() { local d="$1" pat="$2"; shift 2; local o; if o=$("$@" 2>&1); then bad "$d (should have failed)" "$o"
                 elif grep -qE "$pat" <<<"$o"; then ok "$d"; else bad "$d (wrong message)" "$o"; fi; }
 
-T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
+T=$(mktemp -d); [[ -n "${KEEP_TEST_DIR:-}" ]] && echo "test dir: $T" || trap 'rm -rf "$T"' EXIT
 # Work on a committed copy of the repository so the git guards are real.
 cp -r "$REPO" "$T/repo"; rm -rf "$T/repo/.git"
 git -C "$T/repo" init -q; git -C "$T/repo" add -A
@@ -161,12 +161,32 @@ printf 'B_CW1\t-\t-\n' > "$RUNR/Lauderdale_2025/samples.tsv"
 echo x > "$RUNR/Lauderdale_2025/align/B_CW1.bam"; echo x > "$RUNR/Lauderdale_2025/align/B_CW1.bam.bai"
 printf 'layout\tstrand\nPE\t0\n' > "$RUNR/Lauderdale_2025/strand/RESULT.tsv"
 expect_fail "measured strand disagreeing with config stops counting" "measured layout=PE strand=2" "${COUNT[@]}"
-printf 'layout\tstrand\nPE\t0\n' > "$RUNR/Lauderdale_2026/strand/RESULT.tsv"
+printf 'layout\tstrand\tassigned_s0\tassigned_s1\tassigned_s2\tlibraries_tested\nPE\t0\t0.674\t0.350\t0.352\t2\n' > "$RUNR/Lauderdale_2026/strand/RESULT.tsv"
 expect_ok "counting runs when every dataset agrees" "${COUNT[@]}"
 C="$RUNR/counts/Lauderdale"
 [[ "$(head -1 "$C/gene_counts.tsv")" == $'gene_id\tB_CW1\tA_CU4\tA_CW3' ]] && ok "tidy matrix: sample IDs as columns, in config order" || bad "matrix header" "$(head -2 "$C/gene_counts.tsv")"
 grep -q $'^strand\t0$' "$C/PROVENANCE.tsv" && grep -q '^matrix_md5' "$C/PROVENANCE.tsv" && ok "provenance records strand and checksum" || bad "provenance" "$(cat "$C/PROVENANCE.tsv")"
 grep -q -- '--countReadPairs' "$C/PROVENANCE.tsv" && grep -q -- '-s 0' "$C/PROVENANCE.tsv" && ok "fragments counted at the measured strand" || bad "command" "$(cat "$C/PROVENANCE.tsv")"
+PV="$C/provenance"
+for f in software_versions.tsv reference.tsv inputs.tsv library_qc.tsv strand.tsv METHODS.md parameters.env modules.tsv RUN_INFO.tsv; do
+  [[ -s "$PV/$f" ]] || bad "provenance/$f missing"
+done
+grep -qP '^HISAT2\tHISAT2/2.2.1-gompi-2023a\thisat2-align-s version 2.2.1\talign' "$PV/software_versions.tsv" &&
+  grep -qP '^Trimmomatic\t.*\tTrimmomatic 0.39\t' "$PV/software_versions.tsv" &&
+  grep -qP '^FastQC\t.*\tFastQC v0.12.1\t' "$PV/software_versions.tsv" &&
+  grep -qP '^Subread\t.*\tfeatureCounts v2.0.6\tcount,strand|^Subread\t.*\tfeatureCounts v2.0.6\tstrand,count' "$PV/software_versions.tsv" &&
+  ok "versions as the tools report them, with the steps that used them" || bad "software_versions" "$(cat "$PV/software_versions.tsv")"
+grep -qP '^annotation\t.*\t[0-9a-f]{32}\t[0-9]+ genes' "$PV/reference.tsv" && grep -qP '^index_file\t.*\.1\.ht2\t[0-9a-f]{32}' "$PV/reference.tsv" &&
+  ok "reference files checksummed" || bad "reference.tsv" "$(cat "$PV/reference.tsv")"
+grep -qP '^A_CW3\tLauderdale_2026\t2026\t.*A_CW3_1.fq.gz\t[0-9a-f]{32}\t.*A_CW3_2.fq.gz\t[0-9a-f]{32}$' "$PV/inputs.tsv" &&
+  ok "raw FASTQ checksums per library" || bad "inputs.tsv" "$(cat "$PV/inputs.tsv")"
+grep -qP '^A_CW3\tLauderdale_2026\t2026\t1\t100.00\tdetected\t97.00\t90.00\t900\t' "$PV/library_qc.tsv" &&
+  grep -qP '^B_CW1\tLauderdale_2025\t2025\tNA\t' "$PV/library_qc.tsv" &&
+  ok "per-library QC table (NA where a log is missing, not a crash)" || bad "library_qc.tsv" "$(cat "$PV/library_qc.tsv")"
+grep -q "aligned to the GRCm38 primary assembly" "$PV/METHODS.md" && grep -q "with HISAT2 2.2.1 (--dta)" "$PV/METHODS.md" && grep -q "featureCounts (Subread 2.0.6)" "$PV/METHODS.md" &&
+  grep -q "transcript-aware HISAT2 index" "$PV/METHODS.md" && grep -q "were unstranded (featureCounts -s 0)" "$PV/METHODS.md" &&
+  grep -q "from 3 libraries" "$PV/METHODS.md" && ! grep -q "not recorded" "$PV/METHODS.md" &&
+  ok "Methods draft filled in from the record" || bad "METHODS.md" "$(cat "$PV/METHODS.md")"
 expect_fail "an existing matrix is never overwritten" "never overwritten" "${COUNT[@]}"
 rm -rf "$C"; expect_fail "low assignment ratio fails the job" "below 70%" env FC_STUB_LOW=1 "${COUNT[@]}"
 

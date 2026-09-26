@@ -2,6 +2,7 @@
 # Test stand-in for samtools: sort copies stdin, index touches .bai,
 # view -c reports paired reads, quickcheck always passes.
 case "$1" in
+  --version) echo "samtools 1.18" ;;
   sort)  while (( $# )); do [[ "$1" == -o ]] && { out="$2"; shift; }; shift; done; cat > "$out" ;;
   index) for a in "$@"; do [[ "$a" == *.bam ]] && echo idx > "$a.bai"; done ;;
   view)  echo 10 ;;

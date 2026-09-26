@@ -22,6 +22,7 @@ DATASET="$PAX6_DATASET"
 ALN=$(align_dir "$DATASET"); OUT=$(strand_dir "$DATASET")
 mkdir -p "$OUT"
 load_modules Subread SAMtools
+record_versions strand Subread SAMtools
 
 mapfile -t BAMS < <(find "$ALN" -maxdepth 1 -name '*.bam' | sort | head -n "$STRAND_TEST_SAMPLES")
 (( ${#BAMS[@]} > 0 )) || die "No BAMs in $ALN"
@@ -46,7 +47,8 @@ done
 
 read -r A0 A1 A2 < <(awk -F'\t' 'NR > 1 { s[$2] += $3; n[$2]++ } END { printf "%f %f %f\n", s[0]/n[0], s[1]/n[1], s[2]/n[2] }' "$TABLE")
 CALL=$(strand_call "$A0" "$A1" "$A2")
-printf 'layout\tstrand\n%s\t%s\n' "$LAYOUT" "$CALL" > "$OUT/RESULT.tsv"
+printf 'layout\tstrand\tassigned_s0\tassigned_s1\tassigned_s2\tlibraries_tested\n%s\t%s\t%s\t%s\t%s\t%s\n' \
+  "$LAYOUT" "$CALL" "$A0" "$A1" "$A2" "${#BAMS[@]}" > "$OUT/RESULT.tsv"
 
 print_table "$TABLE"
 EXPECT_L=$(dataset_field "$DATASET" layout); EXPECT_S=$(dataset_field "$DATASET" strand)

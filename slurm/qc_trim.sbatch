@@ -30,9 +30,13 @@ fi
 
 INPUTS=("$R1"); [[ "$R2" != - ]] && INPUTS+=("$R2")
 
+# --- Checksums of the raw input, so each count column traces to exact files
+mkdir -p "$(ds_dir "$DATASET")/checksums"
+md5sum "${INPUTS[@]}" > "$(ds_dir "$DATASET")/checksums/$SAMPLE.raw.md5"
+
 # --- FastQC on raw reads -------------------------------------------------
 load_modules FastQC
-fastqc --version
+record_versions trim_fastqc FastQC
 fastqc -q -t "$THREADS" -o "$QC/raw" "${INPUTS[@]}"
 
 # --- Adapter detection ----------------------------------------------------
@@ -50,6 +54,7 @@ for f in "${INPUTS[@]}"; do
 done | sort -u | awk '{ printf ">detected_%d\n%s\n", NR, $0 }' > "$ADAPT_FA"
 
 load_modules Trimmomatic
+record_versions trim Trimmomatic
 JAR=$(find "$EBROOTTRIMMOMATIC" -maxdepth 1 -name 'trimmomatic*.jar' | head -n1)
 [[ -s "$JAR" ]] || die "Trimmomatic jar not found under $EBROOTTRIMMOMATIC"
 if [[ -s "$ADAPT_FA" ]]; then

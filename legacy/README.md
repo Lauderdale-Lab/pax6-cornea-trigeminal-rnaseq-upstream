@@ -8,8 +8,7 @@ and `../config` replaces all of them.
 
 The August 2026 pipeline. Its `count_study.sh` produced both published
 matrices: `Lauderdale_GRCm38_20260813` (48 libraries) and
-`Duncan_GRCm38_20260816` (6 libraries). The same code is under the git tag
-`published-counts-2026-08`. Its `ADDING_A_BATCH.md` and `PROJECT_LAYOUT.md`
+`Duncan_GRCm38_20260816` (6 libraries). Its `ADDING_A_BATCH.md` and `PROJECT_LAYOUT.md`
 describe that pipeline, not the current one.
 
 ## Trimming and alignment scripts

@@ -181,7 +181,7 @@ cmd_status() {
     DS=$(basename "$(dirname "$d")"); n=$(wc -l < "$d")
     t=$( (find "$(trim_dir "$DS")" -maxdepth 1 -name '*.done' 2>/dev/null || true) | wc -l)
     b=$( (find "$(align_dir "$DS")" -maxdepth 1 -name '*.bam.bai' 2>/dev/null || true) | wc -l)
-    st=$(sed -n 2p "$(strand_dir "$DS")/RESULT.tsv" 2>/dev/null | tr '\t' ' ' || true)
+    st=$(sed -n 2p "$(strand_dir "$DS")/RESULT.tsv" 2>/dev/null | cut -f1,2 | tr '\t' ' ' || true)
     printf '%-20s %6s %8s %8s  %-16s %s\n' "$DS" "$n" "$t" "$b" "${st:--}" \
       "$([[ -s "$(ds_dir "$DS")/multiqc_$DS.html" ]] && echo yes || echo -)"
   done

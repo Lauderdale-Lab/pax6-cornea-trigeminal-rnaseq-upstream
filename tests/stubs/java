@@ -2,6 +2,7 @@
 # Test stand-in for Trimmomatic (java -jar trimmomatic.jar PE|SE ...): copies
 # input reads to the output names and logs the ILLUMINACLIP argument.
 shift 2  # -jar <jar>
+[[ "${1:-}" == -version ]] && { echo "0.39"; exit 0; }
 mode="$1"; shift
 files=()
 for a in "$@"; do

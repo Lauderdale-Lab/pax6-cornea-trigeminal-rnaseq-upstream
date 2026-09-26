@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Test stand-in: a lock that does nothing, as flock behaves between compute
+# nodes on Sapelo2's /work. The pipeline must not rely on it.
+exit 0

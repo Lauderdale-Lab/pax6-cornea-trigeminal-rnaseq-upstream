@@ -32,7 +32,11 @@ qc_trim (array, one task per library)   FastQC → Trimmomatic → FastQC on bot
         └─ multiqc  one report per dataset
 ```
 
-`count` makes one matrix per study in a single featureCounts run. It refuses
+`count` makes one matrix per study in a single featureCounts run, and writes
+beside it a `provenance/` folder: the software versions each tool reported,
+checksums of the reference files and of every raw FASTQ, a per-library QC
+table (reads in, surviving trimming, alignment rate, assignment), the measured
+strandedness, and a Methods paragraph filled in from those records. It refuses
 to run unless every library has a verified BAM, the strand check measured in
 this run agrees with `config/datasets.tsv`, and all datasets in the study share
 one strand setting and one layout.
@@ -70,6 +74,7 @@ rather than read off its name.
 ```
 bin/pax6                  the only command you run
 lib/common.sh             shared functions (config tables, runs, discovery, checks)
+lib/provenance.sh         the provenance record and Methods draft written with each matrix
 slurm/                    one job script per step
   qc_trim.sbatch  align.sbatch  strand.sbatch  multiqc.sbatch  count.sbatch  build_index.sbatch
 config/
@@ -83,7 +88,7 @@ tools/
   compare_counts.py           compare two count matrices library by library
   make_test_dataset.sh        a few-minute test dataset from real libraries
   verify_md5.sh               check raw FASTQ against vendor checksums
-tests/run_tests.sh        58 tests; no cluster needed (stand-ins in tests/stubs/)
+tests/run_tests.sh        65 tests; no cluster needed (stand-ins in tests/stubs/)
 docs/                     RUNBOOK.md, LAYOUT.md, PROVENANCE_template.md
 legacy/                   the scripts that produced the published data; not for running
 ```
@@ -106,7 +111,7 @@ published matrices, so a reprocessing run is directly comparable with them
 
 | Matrix | Libraries | Produced by |
 |---|---|---|
-| `Lauderdale_GRCm38_20260813` | 48 (34 cornea, 14 trigeminal) | trimming and alignment by the scripts in `legacy/`; counting by `legacy/pipeline_2026-08/count_study.sh` (git tag `published-counts-2026-08`) |
+| `Lauderdale_GRCm38_20260813` | 48 (34 cornea, 14 trigeminal) | trimming and alignment by the scripts in `legacy/`; counting by `legacy/pipeline_2026-08/count_study.sh` |
 | `Duncan_GRCm38_20260816` | 6 (GSE183742) | as above |
 
 `legacy/README.md` sets out what each old script did, and which of its defects

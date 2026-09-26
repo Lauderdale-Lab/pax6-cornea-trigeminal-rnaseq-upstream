@@ -280,3 +280,43 @@ print_table() {
   awk -F'\t' '{ for (i = 1; i <= NF; i++) { c[NR, i] = $i; if (length($i) > w[i]) w[i] = length($i) } ; if (NF > nf) nf = NF }
     END { for (r = 1; r <= NR; r++) { line = ""; for (i = 1; i <= nf; i++) line = line sprintf("%-" w[i] + 2 "s", c[r, i]); sub(/ +$/, "", line); print line } }' "${1:-/dev/stdin}"
 }
+
+# ---------------------------------------------------------------------------
+# Software versions, as the tools themselves report them
+# ---------------------------------------------------------------------------
+# Module names say what was asked for; this records what actually ran. Each
+# job writes one small file; count.sbatch gathers them into the matrix's
+# provenance and flags any tool that ran at more than one version.
+
+tool_version() {
+  local jar
+  case "$1" in
+    FastQC)      fastqc --version 2>&1 | head -n1 ;;
+    Trimmomatic) jar=$(find "${EBROOTTRIMMOMATIC:-/nonexistent}" -maxdepth 1 -name 'trimmomatic*.jar' 2>/dev/null | head -n1)
+                 [[ -n "$jar" ]] && printf 'Trimmomatic %s\n' "$(java -jar "$jar" -version 2>&1 | tail -n1)" ;;
+    MultiQC)     multiqc --version 2>&1 | head -n1 ;;
+    HISAT2)      hisat2 --version 2>&1 | head -n1 | sed 's|^.*/||' ;;
+    SAMtools)    samtools --version 2>&1 | head -n1 ;;
+    Subread)     printf 'featureCounts %s\n' "$(featureCounts -v 2>&1 | grep -o 'v[0-9][0-9.]*' | head -n1)" ;;
+    *)           echo unknown ;;
+  esac
+}
+
+# record_versions <step> <tool>... : after load_modules, inside a run
+record_versions() {
+  local step="$1" t d="$RUN_DIR/provenance/versions"; shift
+  mkdir -p "$d"
+  for t in "$@"; do
+    printf '%s\t%s\t%s\t%s\t%s\n' "$t" "$(tsv_get "${MODULES_TSV:-$CONFIG_DIR/modules.tsv}" "$t" module)" \
+      "$(tool_version "$t")" "$step" "$(hostname 2>/dev/null || echo unknown)"
+  done > "$d/${step}.${PAX6_DATASET:-${PAX6_STUDY:-all}}.${SLURM_JOB_ID:-local}.${SLURM_ARRAY_TASK_ID:-0}.tsv"
+}
+
+# stats <file> <column> : "min max median" of a numeric column (header skipped)
+stats() {
+  local c; c=$(tsv_col "$1" "$2")
+  tail -n +2 "$1" | cut -f"$c" | grep -E '^[0-9.]+$' | sort -g |
+    awk '{ v[NR] = $1 } END { if (!NR) { print "NA NA NA"; exit }
+          m = (NR % 2) ? v[(NR + 1) / 2] : (v[NR / 2] + v[NR / 2 + 1]) / 2
+          printf "%s %s %s\n", v[1], v[NR], m }'
+}
