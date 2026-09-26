@@ -1,0 +1,7 @@
+sample_id	dataset	batch	r1	r1_md5	r2	r2_md5
+SRR15826449	Duncan_GSE183742	GSE183742	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826449_1.fastq.gz	1c35c22cb1e89829699b767f3d3e68f3	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826449_2.fastq.gz	82c756b5a00cf36e8f48fdfc2e36948d
+SRR15826450	Duncan_GSE183742	GSE183742	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826450_1.fastq.gz	2df146992a402bc05bef1398a6b01e15	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826450_2.fastq.gz	bc0fecfe3cb47209e5ca3f22c5f4d531
+SRR15826451	Duncan_GSE183742	GSE183742	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826451_1.fastq.gz	34890c2533a9c7638276f4eebb577c59	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826451_2.fastq.gz	b7362e28516ee73291ec5a272cc9460c
+SRR15826452	Duncan_GSE183742	GSE183742	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826452_1.fastq.gz	ad06dbe65a036d57255498dfd7a69b2c	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826452_2.fastq.gz	2cb927dc27976617a0630f5c349b4fde
+SRR15826453	Duncan_GSE183742	GSE183742	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826453_1.fastq.gz	a91764343f6898b64278aed1baf4384f	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826453_2.fastq.gz	391cf4b115a5a380a6495934a9348335
+SRR15826454	Duncan_GSE183742	GSE183742	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826454_1.fastq.gz	9ffa1ea19711e44222c2ad23696582d2	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/raw/SRR15826454_2.fastq.gz	797cf0b4ca21991ce89b85ddaafd4342

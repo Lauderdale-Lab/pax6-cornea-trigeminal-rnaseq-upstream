@@ -1,0 +1,7 @@
+key	value
+run	reprocess_2026-09
+created	2026-09-26T06:53:34-04:00
+created_by	jdlauder
+assembly	GRCm38
+index_type	ss_exon
+pipeline_commit	9182fd5eb29132ab53c8b7e3581db6334ac7be92

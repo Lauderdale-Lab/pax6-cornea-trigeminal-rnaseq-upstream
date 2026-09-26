@@ -206,6 +206,10 @@ expect_ok "keep_run.sh --with-bams" "$T/repo/tools/keep_run.sh" R1 --with-bams
 expect_fail "an existing matrix is never overwritten" "never overwritten" "${COUNT[@]}"
 rm -rf "$C"; expect_fail "low assignment ratio fails the job" "below 70%" env FC_STUB_LOW=1 "${COUNT[@]}"
 
+echo "== version capture ignores JVM warnings"
+v=$(export FASTQC_STUB_JVM_WARNING=1; source "$REPO/lib/common.sh"; tool_version FastQC)
+[[ "$v" == "FastQC v0.12.1" ]] && ok "JVM warning line skipped" || bad "tool_version" "$v"
+
 echo "== compare_counts.py"
 printf '# Program:featureCounts\nGeneid\tChr\tStart\tEnd\tStrand\tLength\t/x/A_CW3_Novogene_X202SC26055473_hisat2.sorted.bam\t/y/B_CW1_hisat2.sorted.bam\nENSMUSG01.3\t1\t1\t2\t+\t2\t10\t5\nENSMUSG02.1\t1\t1\t2\t+\t2\t0\t7\n' > "$T/old.txt"
 printf 'gene_id\tA_CW3\tB_CW1\nENSMUSG01.4\t10\t6\nENSMUSG02.1\t0\t7\n' > "$T/new.tsv"

@@ -123,6 +123,17 @@ published matrices, so a reprocessing run is directly comparable with them
 `legacy/README.md` sets out what each old script did, and which of its defects
 were corrected before those matrices were made.
 
+**Reproduced from raw reads.** In September 2026, all 54 libraries were
+reprocessed from raw FASTQ with this pipeline, and the resulting matrices were
+compared with the published ones:
+
+- **GSE183742:** identical.
+- **The 48 Lauderdale libraries:** within 31 fragments per library, at most 26
+  for any gene; Pearson r > 0.99999.
+
+The comparison and the full provenance record are in
+[`docs/validation/reprocess_2026-09/`](docs/validation/reprocess_2026-09/).
+
 ## Maintaining it
 
 - **Before every commit:** run `bash tests/run_tests.sh`. GitHub runs the tests

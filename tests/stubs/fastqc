@@ -4,6 +4,8 @@
 import os, sys, zipfile
 args, out, files = sys.argv[1:], ".", []
 if args and args[0] == "--version":
+    if os.environ.get("FASTQC_STUB_JVM_WARNING"):
+        print("[0.015s][warning][perf,memops] Cannot use file /tmp/hsperfdata_x/1 because it is locked by another process (errno = 11)")
     print("FastQC v0.12.1"); sys.exit(0)
 i = 0
 while i < len(args):

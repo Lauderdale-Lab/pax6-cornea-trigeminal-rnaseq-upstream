@@ -1,0 +1,8 @@
+tool	module	reported_version	steps
+FastQC	FastQC/0.12.1-Java-11	FastQC v0.12.1	trim_fastqc
+FastQC	FastQC/0.12.1-Java-11	[0.015s][warning][perf,memops] Cannot use file /tmp/hsperfdata_jdlauder/2548509 because it is locked by another process (errno = 11)	trim_fastqc
+HISAT2	HISAT2/2.2.1-gompi-2023a	hisat2-align-s version 2.2.1	align
+MultiQC	MultiQC/1.28-foss-2024a	multiqc, version 1.28	multiqc
+SAMtools	SAMtools/1.18-GCC-12.3.0	samtools 1.18	align,strand,count
+Subread	Subread/2.0.6-GCC-12.3.0	featureCounts v2.0.6	strand,count
+Trimmomatic	Trimmomatic/0.39-Java-17	Trimmomatic 0.39	trim

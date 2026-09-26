@@ -1,0 +1,13 @@
+item	path	md5	detail
+genome_fasta	/work/jdllab/PAX6_RNAseq/reference/GRCm38/GRCm38.primary_assembly.genome.fa	4e004c5032ade9aa37cc795890051f7c	66 sequences
+annotation	/work/jdllab/PAX6_RNAseq/reference/GRCm38/gencode.vM25.annotation.gtf	75cb25c2d2ef1faaeaf0a86b67e38e61	55401 genes
+splice_sites	/scratch/jdlauder/PAX6_RNAseq/runs/reprocess_2026-09/reference/splice_sites.txt	575fb099e313515af615f87bc7557507	284754 junctions
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.1.ht2	91f581e658c1b706d0b6e5849ee14bbc	1639917308 bytes
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.2.ht2	4b5ffd8350439847ba655249a27a58d9	664439580 bytes
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.3.ht2	2e775a5c9d6051b35cdf2cb42f7d77b8	6119 bytes
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.4.ht2	47e46bd7c5541beba3dd047feed3db9c	663195875 bytes
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.5.ht2	f921c0614354fc13c1249f40e57293b2	1523657177 bytes
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.6.ht2	2f5376317123e3aeeed2a7c6adfc593a	675646754 bytes
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.7.ht2	647c60f6c240aa1c46db65e605222ff1	11284752 bytes
+index_file	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran.8.ht2	8793b3195a6eef31b17ae66f4a6755bd	2251979 bytes
+index_type	/work/jdllab/PAX6_RNAseq/reference/GRCm38/genome_snp_tran/genome_snp_tran	-	ss_exon

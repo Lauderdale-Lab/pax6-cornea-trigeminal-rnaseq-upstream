@@ -289,12 +289,16 @@ print_table() {
 # job writes one small file; count.sbatch gathers them into the matrix's
 # provenance and flags any tool that ran at more than one version.
 
-tool_version() {
+# JVM warnings such as "[0.015s][warning][perf,memops] Cannot use file
+# /tmp/hsperfdata_..." appear when two Java tools share a node; they are
+# dropped so they can never be mistaken for a version string.
+tool_version() { _tool_version "$@" | grep -vE '^\[[0-9.]+s\]\[' | head -n1; }
+_tool_version() {
   local jar
   case "$1" in
-    FastQC)      fastqc --version 2>&1 | head -n1 ;;
+    FastQC)      fastqc --version 2>&1 ;;
     Trimmomatic) jar=$(find "${EBROOTTRIMMOMATIC:-/nonexistent}" -maxdepth 1 -name 'trimmomatic*.jar' 2>/dev/null | head -n1)
-                 [[ -n "$jar" ]] && printf 'Trimmomatic %s\n' "$(java -jar "$jar" -version 2>&1 | tail -n1)" ;;
+                 [[ -n "$jar" ]] && printf 'Trimmomatic %s\n' "$(java -jar "$jar" -version 2>&1 | grep -vE '^\[[0-9.]+s\]\[' | tail -n1)" ;;
     MultiQC)     multiqc --version 2>&1 | head -n1 ;;
     HISAT2)      hisat2 --version 2>&1 | head -n1 | sed 's|^.*/||' ;;
     SAMtools)    samtools --version 2>&1 | head -n1 ;;
