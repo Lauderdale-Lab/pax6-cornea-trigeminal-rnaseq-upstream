@@ -8,7 +8,9 @@
 │   ├── PROVENANCE.md          source, dates, measured strandedness, original path
 │   ├── metadata/              vendor reports, MD5 manifests, optional samples.tsv
 │   └── raw/                   FASTQ exactly as delivered; read-only
-├── runs/<run>/                OUTPUTS, one folder per processing run
+├── runs/<run>/                RESULTS KEPT: copied here from scratch by every count
+│                              job (everything below except trimmed/ and BAMs;
+│                              BAMs too after tools/keep_run.sh --with-bams)
 │   ├── RUN_INFO.tsv           commit, genome build, creator, date
 │   ├── modules.tsv            module versions frozen for this run
 │   ├── parameters.env         parameters frozen for this run
@@ -33,6 +35,11 @@
 │       └── provenance/        software_versions, reference (MD5s), inputs (raw
 │                              FASTQ MD5s), library_qc, strand, METHODS.md
 └── archive/                   superseded outputs, never read by the pipeline
+
+/scratch/$USER/PAX6_RNAseq/
+└── runs/<run>/                PROCESSING: the full run, same structure as above,
+                               including trimmed/ and BAMs. Purged by Sapelo2,
+                               so nothing here is permanent.
 ```
 
 ## Rules
@@ -47,10 +54,11 @@
 4. **Runs are never edited in place.** A new build, module version or
    parameter set means a new run beside the old one, which is what lets a
    change in results be traced to the change that caused it.
-5. **Space.** Raw FASTQ is about 10 GB per library at this depth; trimmed
-   reads and BAMs about the same again per run. When a run's matrices are
-   final and compared, its `trimmed/` folders can be deleted: they can be
-   regenerated from `raw/`. Check the quota with `lfs quota -h -g jdllab /work`.
+5. **Space.** Raw FASTQ is about 10 GB per library at this depth, and a run
+   adds about 15 GB per library of trimmed reads and BAMs. That is why runs
+   are processed on scratch. On /work, a kept run without BAMs is a few GB;
+   with BAMs, add about 3 GB per library. Check the quota with
+   `lfs quota -h -g jdllab /work`.
 
 ## Naming
 

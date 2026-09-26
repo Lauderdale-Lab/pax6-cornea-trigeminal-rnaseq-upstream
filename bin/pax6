@@ -95,6 +95,11 @@ cmd_check() {
   else
     echo "  (no 'module' command here; run check on Sapelo2)"
   fi
+  echo "== locations"
+  echo "  data   $DATA_DIR"
+  echo "  runs   $RUNS_DIR   (processing)"
+  echo "  keep   $KEEP_DIR   (results kept)"
+  if mkdir -p "$RUNS_DIR" 2>/dev/null && [[ -w "$RUNS_DIR" ]]; then echo "  OK    runs directory writable"; else echo "  BAD   cannot write $RUNS_DIR"; ok=0; fi
   echo "== code"
   for f in "$PAX6_HOME"/bin/pax6 "$PAX6_HOME"/lib/*.sh "$PAX6_HOME"/slurm/*.sbatch; do
     bash -n "$f" || { echo "  SYNTAX $f"; ok=0; }
@@ -129,6 +134,7 @@ cmd_new_run() {
     printf 'pipeline_commit\t%s\n' "$(git_head)"
   } > "$d/RUN_INFO.tsv"
   log "created run $r ($a) at $d"
+  [[ "$RUNS_DIR" != "$KEEP_DIR" ]] && log "results are copied to $KEEP_DIR/$r as each count finishes; tools/keep_run.sh $r --with-bams keeps the BAMs"
   log "next: bin/pax6 submit $r <dataset>..."
 }
 
@@ -175,6 +181,7 @@ cmd_status() {
   local r="${1:?usage: pax6 status <run>}" d n t b st
   load_run "$r"
   echo "run $RUN   assembly $ASSEMBLY ($INDEX_TYPE)   commit $(run_info "$RUN" pipeline_commit | cut -c1-8)"
+  echo "at  $RUN_DIR"
   printf '%-20s %6s %8s %8s  %-16s %s\n' dataset libs trimmed aligned strand multiqc
   for d in "$RUN_DIR"/*/samples.tsv; do
     [[ -e "$d" ]] || continue

@@ -1,7 +1,14 @@
 # Runbook — Sapelo2
 
-Everything is run from the pipeline checkout with `bin/pax6`. Job logs go to
-`runs/<run>/logs/`.
+Everything is run from the pipeline checkout with `bin/pax6`.
+
+**Where things go.** Runs are processed on scratch,
+`/scratch/$USER/PAX6_RNAseq/runs/<run>/`, where trimmed reads, BAMs and job
+logs (`logs/`) are written. Scratch is fast, but Sapelo2 purges it. Every count
+job therefore copies its matrix, the provenance record, and the run's QC and
+records to `/work/jdllab/PAX6_RNAseq/runs/<run>/` the moment it finishes. To
+keep the BAMs as well, run `tools/keep_run.sh <run> --with-bams`. Both
+locations are set in `config/site.env`.
 
 ## 1. One-time setup: archive the old outputs, install the pipeline
 
@@ -77,7 +84,7 @@ bin/pax6 status  $RUN
 ```
 
 When every dataset shows a strand result, read its log
-(`runs/$RUN/logs/strand_<dataset>_*.out`). It prints `AGREE` or `DISAGREE`
+(`/scratch/$USER/PAX6_RNAseq/runs/$RUN/logs/strand_<dataset>_*.out`). It prints `AGREE` or `DISAGREE`
 against `config/datasets.tsv`. Then:
 
 ```bash
@@ -89,14 +96,27 @@ Then compare with the published matrices before anyone uses the new numbers:
 
 ```bash
 # needs only python3 (the system one, or: ml Python)
-tools/compare_counts.py runs/$RUN/counts/Lauderdale/gene_counts.tsv \
+K=/work/jdllab/PAX6_RNAseq/runs/$RUN          # the kept copy on /work
+tools/compare_counts.py $K/counts/Lauderdale/gene_counts.tsv \
   ../archive/2026-08_pipeline/counts/Lauderdale_GRCm38_20260813/gene_counts_featureCounts.txt \
-  --out runs/$RUN/counts/Lauderdale/compare_with_published.tsv
+  --out $K/counts/Lauderdale/compare_with_published.tsv
 ```
 
 Identical trimming, alignment and counting settings should give nearly
 identical counts. Any difference must be explained before the new matrix
 replaces the old.
+
+After counting, keep the BAMs on /work if later work will need them, such as
+per-exon or per-allele analysis of *Pax6*. This is about 3 GB per library:
+
+```bash
+tools/keep_run.sh $RUN --with-bams
+```
+
+Check the space first with `lfs quota -h -g jdllab /work`. Once the new BAMs
+are kept and the comparison is settled, the archived August BAMs
+(`archive/2026-08_pipeline/data/*/align/`, about 160 GB) are the obvious space
+to reclaim.
 
 ## 5. Adding a new dataset
 

@@ -49,6 +49,11 @@ Step-by-step instructions for Sapelo2 are in **[docs/RUNBOOK.md](docs/RUNBOOK.md
 and parameters live in `config/`. Adding a dataset is one row in
 `config/datasets.tsv`. No script is edited.
 
+**Heavy work on scratch, results on /work.** Runs are processed on
+`/scratch`, which is fast and keeps trimmed reads and BAMs off the group
+quota. Each count job copies its matrix, provenance and QC to `/work` as soon
+as it finishes, so nothing of value depends on scratch surviving.
+
 **A run is one complete, frozen processing.** `new-run` records the pipeline
 commit, genome build, module versions and parameters in `runs/<run>/`.
 Everything the run produces stays inside that folder, so outputs never mix. If
@@ -88,7 +93,8 @@ tools/
   compare_counts.py           compare two count matrices library by library
   make_test_dataset.sh        a few-minute test dataset from real libraries
   verify_md5.sh               check raw FASTQ against vendor checksums
-tests/run_tests.sh        65 tests; no cluster needed (stand-ins in tests/stubs/)
+  keep_run.sh                 copy a run's results (optionally BAMs) from scratch to /work
+tests/run_tests.sh        71 tests; no cluster needed (stand-ins in tests/stubs/)
 docs/                     RUNBOOK.md, LAYOUT.md, PROVENANCE_template.md
 legacy/                   the scripts that produced the published data; not for running
 ```

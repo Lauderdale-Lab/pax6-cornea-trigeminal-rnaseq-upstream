@@ -94,6 +94,11 @@ assignment_table "$OUT/featureCounts.txt.summary" > "$OUT/assignment_qc.tsv"
 print_table "$OUT/assignment_qc.tsv"
 write_provenance "$STUDY" "$OUT"
 log "provenance: $OUT/provenance/   (Methods draft: provenance/METHODS.md)"
+# Runs are processed on scratch, which is purged. Keep the matrix, its
+# provenance and the run's QC and records on /work now, before the quality
+# gate below, so even a flagged matrix is preserved for inspection.
+KEPT=$(keep_results "$RUN")
+log "kept on /work: $KEPT/counts/$STUDY"
 LOW=$(awk -F'\t' -v m="$MIN_ASSIGN_RATIO" 'NR > 1 && $4 < m { print $1 }' "$OUT/assignment_qc.tsv")
 log "matrix: $OUT/gene_counts.tsv"
 if [[ -n "$LOW" ]]; then

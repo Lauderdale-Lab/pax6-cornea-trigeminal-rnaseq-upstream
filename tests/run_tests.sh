@@ -25,7 +25,7 @@ cp -r "$REPO" "$T/repo"; rm -rf "$T/repo/.git"
 git -C "$T/repo" init -q; git -C "$T/repo" add -A
 git -C "$T/repo" -c user.name=t -c user.email=t@t commit -qm init
 P="$T/repo/bin/pax6"
-export PAX6_ROOT="$T/root" PAX6_MAIL="" PATH="$REPO/tests/stubs:$PATH" SBATCH_LOG="$T/sbatch.log"
+export PAX6_ROOT="$T/root" PAX6_RUNS="$T/scratch/runs" PAX6_KEEP="$T/root/runs" PAX6_MAIL="" PATH="$REPO/tests/stubs:$PATH" SBATCH_LOG="$T/sbatch.log"
 module() { return 0; }; export -f module
 
 gz() { mkdir -p "$(dirname "$1")"; printf '@r\nACGT\n+\nIIII\n' | gzip -c > "$1"; }
@@ -86,7 +86,7 @@ echo "== strand call (fractions measured on the real libraries)"
 
 echo "== runs and the commit guard"
 expect_ok   "new-run creates a run"            "$P" new-run R1
-[[ -f "$PAX6_ROOT/runs/R1/RUN_INFO.tsv" && -f "$PAX6_ROOT/runs/R1/modules.tsv" ]] && ok "run freezes RUN_INFO, modules, parameters" || bad "run files"
+[[ -f "$PAX6_RUNS/R1/RUN_INFO.tsv" && -f "$PAX6_RUNS/R1/modules.tsv" ]] && ok "run freezes RUN_INFO, modules, parameters" || bad "run files"
 expect_fail "run names cannot be reused"        "already exists" "$P" new-run R1
 expect_fail "unknown assembly is refused"       "Unknown assembly" "$P" new-run R2 hg38
 
@@ -123,7 +123,7 @@ printf 'chr1\tHAVANA\texon\t1\t4\t.\t+\t.\tgene_id "g"; transcript_id "t";\n' > 
 echo idx > "$G/genome_snp_tran/genome_snp_tran.1.ht2"
 printf '>a\nAGATCGGAAGAGC\n' > "$EBROOTTRIMMOMATIC/adapters/TruSeq3-PE.fa"
 J() { env SLURM_ARRAY_TASK_ID="$1" PAX6_HOME="$T/repo" PAX6_RUN=R1 PAX6_DATASET=Lauderdale_2026 bash "$T/repo/slurm/$2"; }
-D26="$PAX6_ROOT/runs/R1/Lauderdale_2026"
+D26="$PAX6_RUNS/R1/Lauderdale_2026"
 expect_ok "trim task 1" J 1 qc_trim.sbatch
 FASTQC_STUB_ADAPTER=1 expect_ok "trim task 2 (adapter present)" J 2 qc_trim.sbatch
 [[ -s "$D26/trimmed/A_CU4_1.fq.gz" && -s "$D26/trimmed/A_CU4_2.fq.gz" && -f "$D26/trimmed/A_CU4.done" ]] && ok "trimmed pair and completion marker written" || bad "trim outputs" "$(ls -R "$D26")"
@@ -138,9 +138,9 @@ J 1 align.sbatch > "$T/a1.log" 2>&1 & p1=$!
 J 2 align.sbatch > "$T/a2.log" 2>&1 & p2=$!
 if wait "$p1"; then ok "align task 1 (concurrent)"; else bad "align task 1" "$(cat "$T/a1.log")"; fi
 if wait "$p2"; then ok "align task 2 (concurrent)"; else bad "align task 2" "$(cat "$T/a2.log")"; fi
-[[ -z "$(find "$PAX6_ROOT/runs/R1/reference" -name '*.tmp*')" ]] && ok "no temporary splice-site files left" || bad "splice tmp leftovers"
+[[ -z "$(find "$PAX6_RUNS/R1/reference" -name '*.tmp*')" ]] && ok "no temporary splice-site files left" || bad "splice tmp leftovers"
 [[ -s "$D26/align/A_CU4.bam" && -s "$D26/align/A_CU4.bam.bai" && ! -e "$D26/align/A_CU4.bam.tmp" ]] && ok "BAM + index written under final name" || bad "align outputs" "$(ls "$D26/align")"
-[[ -s "$PAX6_ROOT/runs/R1/reference/splice_sites.txt" ]] && ok "splice sites extracted once per run" || bad "splice sites"
+[[ -s "$PAX6_RUNS/R1/reference/splice_sites.txt" ]] && ok "splice sites extracted once per run" || bad "splice sites"
 out=$(J 1 align.sbatch 2>&1); grep -q "verified; nothing to do" <<<"$out" && ok "resubmitted align task skips verified BAM" || bad "align resume" "$out"
 out=$(env PAX6_HOME="$T/repo" PAX6_RUN=R1 PAX6_DATASET=Lauderdale_2026 bash "$T/repo/slurm/strand.sbatch" 2>&1)
 grep -q "MEASURED   layout=PE strand=0" <<<"$out" && grep -q "^AGREE" <<<"$out" && ok "strand check measures unstranded PE and agrees with config" || bad "strand job" "$out"
@@ -149,7 +149,7 @@ out=$("$P" status R1 2>&1)
 grep -qE "^Lauderdale_2026 +2 +2 +2 +PE 0 +yes" <<<"$out" && ok "status reports libraries, trimmed, aligned, strand, MultiQC" || bad "status" "$out"
 
 echo "== counting gates and outputs"
-RUNR="$PAX6_ROOT/runs/R1"
+RUNR="$PAX6_RUNS/R1"
 mkdir -p "$RUNR/Lauderdale_2026/align"
 for s in A_CU4 A_CW3; do echo x > "$RUNR/Lauderdale_2026/align/$s.bam"; echo x > "$RUNR/Lauderdale_2026/align/$s.bam.bai"; done
 mkdir -p "$RUNR/Lauderdale_2026/strand"; printf 'layout\tstrand\nPE\t2\n' > "$RUNR/Lauderdale_2026/strand/RESULT.tsv"
@@ -187,6 +187,13 @@ grep -q "aligned to the GRCm38 primary assembly" "$PV/METHODS.md" && grep -q "wi
   grep -q "transcript-aware HISAT2 index" "$PV/METHODS.md" && grep -q "were unstranded (featureCounts -s 0)" "$PV/METHODS.md" &&
   grep -q "from 3 libraries" "$PV/METHODS.md" && ! grep -q "not recorded" "$PV/METHODS.md" &&
   ok "Methods draft filled in from the record" || bad "METHODS.md" "$(cat "$PV/METHODS.md")"
+K="$PAX6_KEEP/R1"
+[[ -s "$K/counts/Lauderdale/gene_counts.tsv" && -s "$K/counts/Lauderdale/provenance/METHODS.md" && -s "$K/RUN_INFO.tsv" ]] &&
+  ok "matrix, provenance and run records kept on /work automatically" || bad "keep after count" "$(find "$PAX6_KEEP" -type f 2>/dev/null | head)"
+[[ -z "$(find "$K" -name '*.bam' -o -path '*/trimmed/*' -type f)" ]] && ok "BAMs and trimmed reads are not copied by default" || bad "keep copied BAMs or trimmed reads"
+cmp -s "$C/gene_counts.tsv" "$K/counts/Lauderdale/gene_counts.tsv" && ok "kept matrix identical to the one on scratch" || bad "kept matrix differs"
+expect_ok "keep_run.sh --with-bams" "$T/repo/tools/keep_run.sh" R1 --with-bams
+[[ -s "$K/Lauderdale_2026/align/A_CW3.bam" ]] && ok "keep_run.sh --with-bams copies BAMs" || bad "BAMs not kept"
 expect_fail "an existing matrix is never overwritten" "never overwritten" "${COUNT[@]}"
 rm -rf "$C"; expect_fail "low assignment ratio fails the job" "below 70%" env FC_STUB_LOW=1 "${COUNT[@]}"
 

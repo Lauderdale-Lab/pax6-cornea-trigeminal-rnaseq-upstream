@@ -18,10 +18,11 @@ CONFIG_DIR="$PAX6_HOME/config"
 
 # shellcheck source=../config/site.env
 source "$CONFIG_DIR/site.env"
-export PAX6_ROOT
+export PAX6_ROOT PAX6_RUNS PAX6_KEEP
 DATA_DIR="$PAX6_ROOT/data"
 REF_DIR="$PAX6_ROOT/reference"
-RUNS_DIR="$PAX6_ROOT/runs"
+RUNS_DIR="$PAX6_RUNS"
+KEEP_DIR="$PAX6_KEEP"
 
 export THREADS="${SLURM_CPUS_PER_TASK:-4}"
 
@@ -319,4 +320,29 @@ stats() {
     awk '{ v[NR] = $1 } END { if (!NR) { print "NA NA NA"; exit }
           m = (NR % 2) ? v[(NR + 1) / 2] : (v[NR / 2] + v[NR / 2 + 1]) / 2
           printf "%s %s %s\n", v[1], v[NR], m }'
+}
+
+# ---------------------------------------------------------------------------
+# Keeping results off scratch
+# ---------------------------------------------------------------------------
+# keep_results <run> [--with-bams] : copy a run's durable results from
+# $PAX6_RUNS (scratch) to $PAX6_KEEP (/work). Always copied: run records,
+# count matrices and provenance, per-dataset samples, checksums, strand
+# results, QC reports and logs. BAMs only with --with-bams. Trimmed reads are
+# never copied: they are regenerated from raw/ in about an hour per library.
+keep_results() {
+  local r="$1" with_bams="${2:-}" src dst f
+  src=$(run_dir "$r"); dst="$KEEP_DIR/$r"
+  [[ -d "$src" ]] || die "Run $r not found at $src"
+  mkdir -p "$dst"
+  # Nothing to do when runs are already kept where they are processed
+  [[ "$(cd "$src" && pwd -P)" == "$(cd "$dst" && pwd -P)" ]] && { printf '%s\n' "$dst"; return 0; }
+  ( cd "$src" && find . -type f ! -path '*/trimmed/*' ) | while IFS= read -r f; do
+    if [[ "$with_bams" != --with-bams ]] && [[ "$f" == *.bam || "$f" == *.bam.bai ]]; then continue; fi
+    # copy only what is new or changed, so repeating is cheap
+    if [[ ! -e "$dst/$f" || "$src/$f" -nt "$dst/$f" ]]; then
+      mkdir -p "$dst/$(dirname "$f")"; cp -p "$src/$f" "$dst/$f"
+    fi
+  done
+  printf '%s\n' "$dst"
 }
