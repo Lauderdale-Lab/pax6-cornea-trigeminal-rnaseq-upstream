@@ -1,0 +1,211 @@
+#!/usr/bin/env bash
+#
+# bin/pax6 -- the one command for running the PAX6 RNA-seq pipeline on Sapelo2.
+#
+#   bin/pax6 check [run]                    validate config, data, reference, modules
+#   bin/pax6 samples <dataset>              show the libraries a dataset resolves to
+#   bin/pax6 new-run <run> [assembly]       create a run (default assembly: first in config)
+#   bin/pax6 submit <run> <dataset>...      trim -> align -> strand check + MultiQC
+#   bin/pax6 count <run> <study>            one count matrix for the study
+#   bin/pax6 status <run>                   progress of every dataset in a run
+#   bin/pax6 index <assembly>               build a HISAT2 index
+#
+# Run it from anywhere; it finds the repository from its own location.
+
+set -euo pipefail
+PAX6_HOME="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+export PAX6_HOME
+# shellcheck source=../lib/common.sh
+source "$PAX6_HOME/lib/common.sh"
+
+usage() { sed -n '3,12p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+# Paths whose change alters results. A run is tied to the commit it was
+# created at; these may not change underneath it. datasets.tsv may (strand
+# and layout get recorded mid-run), and docs may.
+CODE_PATHS=(bin lib slurm config/parameters.env config/modules.tsv config/assemblies.tsv)
+
+git_head()  { git -C "$PAX6_HOME" rev-parse HEAD 2>/dev/null || echo none; }
+code_dirty() { ! git -C "$PAX6_HOME" diff --quiet HEAD -- "${CODE_PATHS[@]}" 2>/dev/null; }
+
+check_run_commit() {
+  local rec; rec=$(run_info "$RUN" pipeline_commit)
+  [[ "$rec" == none ]] && { warn "Run $RUN was created outside a git checkout; code changes cannot be detected."; return 0; }
+  if code_dirty; then die "Uncommitted changes in pipeline code or parameters. Commit or revert them first."; fi
+  if [[ "$rec" != "$(git_head)" ]] && ! git -C "$PAX6_HOME" diff --quiet "$rec" HEAD -- "${CODE_PATHS[@]}"; then
+    die "Pipeline code or parameters changed since run $RUN was created (commit ${rec:0:8}).
+        A run must be processed by one version of the pipeline. Start a new run,
+        or check out ${rec:0:8} to finish this one."
+  fi
+}
+
+# samples_for <dataset> : explicit data/<dataset>/metadata/samples.tsv if it
+# exists (sample_id, r1, r2; paths relative to raw/ allowed), else discovery.
+samples_for() {
+  local ds="$1" raw manual
+  raw=$(raw_dir_for "$ds"); manual="$DATA_DIR/$ds/metadata/samples.tsv"
+  if [[ -f "$manual" ]]; then
+    tsv_rows "$manual" | while IFS=$'\t' read -r s r1 r2; do
+      [[ "$r1" == /* ]] || r1="$raw/$r1"
+      [[ "$r2" == - || "$r2" == /* ]] || r2="$raw/$r2"
+      [[ -f "$r1" ]] || die "$manual: $s: file not found: $r1"
+      [[ "$r2" == - || -f "$r2" ]] || die "$manual: $s: file not found: $r2"
+      printf '%s\t%s\t%s\n' "$s" "$r1" "$r2"
+    done
+  else
+    discover_samples "$raw"
+  fi
+}
+
+# sb <job-name-suffix> <extra sbatch args...> -- <script> : submit, print job id
+sb() {
+  local args=(--parsable --partition="$PAX6_PARTITION"
+              --export="ALL,PAX6_HOME=$PAX6_HOME,PAX6_RUN=${RUN:-},PAX6_DATASET=${DS:-},PAX6_STUDY=${STUDY:-},PAX6_ASSEMBLY=${ASSEMBLY:-}")
+  [[ -n "$PAX6_MAIL" ]] && args+=(--mail-user="$PAX6_MAIL" --mail-type=FAIL)
+  sbatch "${args[@]}" "$@"
+}
+
+cmd_check() {
+  local ok=1 ds a f
+  echo "== config"
+  for ds in $(dataset_list); do
+    local l s; l=$(dataset_field "$ds" layout); s=$(dataset_field "$ds" strand)
+    [[ "$l" =~ ^(PE|SE|auto)$ ]] || { echo "  BAD   $ds layout '$l'"; ok=0; }
+    [[ "$s" =~ ^(0|1|2|auto)$ ]] || { echo "  BAD   $ds strand '$s'"; ok=0; }
+    if [[ -d "$(raw_dir_for "$ds")" ]]; then
+      local n; n=$( (samples_for "$ds" 2>/dev/null || true) | wc -l)
+      echo "  OK    $ds  study=$(dataset_field "$ds" study) layout=$l strand=$s  libraries=$n"
+      (( n > 0 )) || { echo "        -> no libraries resolved; run: bin/pax6 samples $ds"; ok=0; }
+    else
+      echo "  MISS  $ds  raw data not at $(raw_dir_for "$ds")"; ok=0
+    fi
+  done
+  echo "== reference"
+  for a in $(tsv_rows "$ASSEMBLIES_TSV" | cut -f1); do
+    resolve_assembly "$a"
+    for f in "$GENOME_FASTA" "$ANNOTATION" "${HISAT2_INDEX}.1.ht2"; do
+      [[ -s "$f" ]] && echo "  OK    $a $(basename "$f")" || echo "  miss  $a $(basename "$f")"
+    done
+  done
+  echo "== modules"
+  if command -v module >/dev/null 2>&1 || type module >/dev/null 2>&1; then
+    tsv_rows "$CONFIG_DIR/modules.tsv" | while IFS=$'\t' read -r t m; do
+      if module -t avail "$m" 2>&1 | grep -q "^${m}\((default)\)\{0,1\}$"; then echo "  OK    $m"; else echo "  MISS  $m"; fi
+    done
+  else
+    echo "  (no 'module' command here; run check on Sapelo2)"
+  fi
+  echo "== code"
+  for f in "$PAX6_HOME"/bin/pax6 "$PAX6_HOME"/lib/*.sh "$PAX6_HOME"/slurm/*.sbatch; do
+    bash -n "$f" || { echo "  SYNTAX $f"; ok=0; }
+  done
+  if code_dirty; then echo "  uncommitted changes in pipeline code (a new run will refuse)"; else echo "  OK    committed, $(git_head | cut -c1-8)"; fi
+  if (( ok )); then echo "== all required checks passed"; else echo "== problems found"; return 1; fi
+}
+
+cmd_samples() {
+  local ds="${1:?usage: pax6 samples <dataset>}"
+  require_dataset "$ds"
+  samples_for "$ds" | awk -F'\t' 'BEGIN { print "sample_id\tr1\tr2" } { print }' | print_table
+}
+
+cmd_new_run() {
+  local r="${1:?usage: pax6 new-run <run> [assembly]}" a="${2:-}"
+  [[ "$r" =~ ^[A-Za-z0-9._-]+$ ]] || die "Run names may contain letters, digits, . _ - only."
+  [[ -n "$a" ]] || a=$(tsv_rows "$ASSEMBLIES_TSV" | head -n1 | cut -f1)
+  resolve_assembly "$a"
+  local d; d=$(run_dir "$r")
+  [[ -e "$d" ]] && die "Run '$r' already exists at $d."
+  if code_dirty; then die "Uncommitted changes in pipeline code or parameters. Commit them first, so the run records exactly what processed it."; fi
+  mkdir -p "$d/logs"
+  cp "$CONFIG_DIR/modules.tsv" "$CONFIG_DIR/parameters.env" "$d/"
+  {
+    printf 'key\tvalue\n'
+    printf 'run\t%s\n' "$r"
+    printf 'created\t%s\n' "$(date -Iseconds)"
+    printf 'created_by\t%s\n' "${USER:-unknown}"
+    printf 'assembly\t%s\n' "$a"
+    printf 'index_type\t%s\n' "$INDEX_TYPE"
+    printf 'pipeline_commit\t%s\n' "$(git_head)"
+  } > "$d/RUN_INFO.tsv"
+  log "created run $r ($a) at $d"
+  log "next: bin/pax6 submit $r <dataset>..."
+}
+
+cmd_submit() {
+  local r="${1:?usage: pax6 submit <run> <dataset>...}"; shift
+  (( $# > 0 )) || die "usage: pax6 submit <run> <dataset>..."
+  load_run "$r"; check_run_commit
+  local n t a s m
+  for DS in "$@"; do
+    require_dataset "$DS"
+    mkdir -p "$(ds_dir "$DS")"
+    samples_for "$DS" > "$(samples_tsv "$DS").new"
+    n=$(wc -l < "$(samples_tsv "$DS").new")
+    (( n > 0 )) || die "$DS: no libraries found"
+    if [[ -s "$(samples_tsv "$DS")" ]] && ! cmp -s "$(samples_tsv "$DS")" "$(samples_tsv "$DS").new"; then
+      rm -f "$(samples_tsv "$DS").new"
+      die "$DS: the libraries found differ from those already in this run ($(samples_tsv "$DS")). Start a new run."
+    fi
+    mv "$(samples_tsv "$DS").new" "$(samples_tsv "$DS")"
+    local L="$RUN_DIR/logs"
+    t=$(sb --job-name="trim_$DS" --array="1-$n%$PAX6_ARRAY_MAX" \
+          --output="$L/trim_${DS}_%A_%a.out" "$PAX6_HOME/slurm/qc_trim.sbatch")
+    # aftercorr: align task i starts as soon as trim task i succeeds
+    a=$(sb --job-name="align_$DS" --array="1-$n%$PAX6_ARRAY_MAX" --dependency="aftercorr:$t" \
+          --output="$L/align_${DS}_%A_%a.out" "$PAX6_HOME/slurm/align.sbatch")
+    s=$(sb --job-name="strand_$DS" --dependency="afterok:$a" \
+          --output="$L/strand_${DS}_%j.out" "$PAX6_HOME/slurm/strand.sbatch")
+    m=$(sb --job-name="multiqc_$DS" --dependency="afterany:$a" \
+          --output="$L/multiqc_${DS}_%j.out" "$PAX6_HOME/slurm/multiqc.sbatch")
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -Iseconds)" "$DS" "$t" "$a" "$s" "$m" >> "$RUN_DIR/jobs.tsv"
+    log "$DS: $n libraries   trim $t -> align $a -> strand $s, multiqc $m"
+  done
+  log "logs: $RUN_DIR/logs    progress: bin/pax6 status $RUN"
+}
+
+cmd_count() {
+  local r="${1:?usage: pax6 count <run> <study>}"; STUDY="${2:?usage: pax6 count <run> <study>}"
+  load_run "$r"; check_run_commit; require_study "$STUDY"
+  local j; j=$(sb --job-name="count_$STUDY" --output="$RUN_DIR/logs/count_${STUDY}_%j.out" "$PAX6_HOME/slurm/count.sbatch")
+  log "count $STUDY: job $j  ->  $(counts_dir "$STUDY")"
+}
+
+cmd_status() {
+  local r="${1:?usage: pax6 status <run>}" d n t b st
+  load_run "$r"
+  echo "run $RUN   assembly $ASSEMBLY ($INDEX_TYPE)   commit $(run_info "$RUN" pipeline_commit | cut -c1-8)"
+  printf '%-20s %6s %8s %8s  %-16s %s\n' dataset libs trimmed aligned strand multiqc
+  for d in "$RUN_DIR"/*/samples.tsv; do
+    [[ -e "$d" ]] || continue
+    DS=$(basename "$(dirname "$d")"); n=$(wc -l < "$d")
+    t=$( (find "$(trim_dir "$DS")" -maxdepth 1 -name '*.done' 2>/dev/null || true) | wc -l)
+    b=$( (find "$(align_dir "$DS")" -maxdepth 1 -name '*.bam.bai' 2>/dev/null || true) | wc -l)
+    st=$(sed -n 2p "$(strand_dir "$DS")/RESULT.tsv" 2>/dev/null | tr '\t' ' ' || true)
+    printf '%-20s %6s %8s %8s  %-16s %s\n' "$DS" "$n" "$t" "$b" "${st:--}" \
+      "$([[ -s "$(ds_dir "$DS")/multiqc_$DS.html" ]] && echo yes || echo -)"
+  done
+  for d in "$RUN_DIR"/counts/*/; do
+    [[ -d "$d" ]] || continue
+    printf 'counts %-14s %s\n' "$(basename "$d")" "$([[ -s "$d/gene_counts.tsv" ]] && echo "done ($(head -1 "$d/gene_counts.tsv" | awk -F'\t' '{print NF-1}') libraries)" || echo 'in progress or failed')"
+  done
+}
+
+cmd_index() {
+  ASSEMBLY="${1:?usage: pax6 index <assembly>}"; resolve_assembly "$ASSEMBLY"
+  mkdir -p "$REF_DIR/$ASSEMBLY"
+  local j; j=$(sb --job-name="index_$ASSEMBLY" --output="$REF_DIR/$ASSEMBLY/index_build_%j.out" "$PAX6_HOME/slurm/build_index.sbatch")
+  log "index build for $ASSEMBLY: job $j"
+}
+
+case "${1:-}" in
+  check)   shift; cmd_check "$@" ;;
+  samples) shift; cmd_samples "$@" ;;
+  new-run) shift; cmd_new_run "$@" ;;
+  submit)  shift; cmd_submit "$@" ;;
+  count)   shift; cmd_count "$@" ;;
+  status)  shift; cmd_status "$@" ;;
+  index)   shift; cmd_index "$@" ;;
+  -h|--help|help|"") usage 0 ;;
+  *) echo "Unknown command '$1'" >&2; usage 1 ;;
+esac

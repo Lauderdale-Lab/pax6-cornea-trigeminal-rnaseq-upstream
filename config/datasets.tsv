@@ -1,0 +1,14 @@
+# One row per DATASET: files that arrived together (a sequencing delivery or a
+# GEO accession). Raw FASTQ lives in $PAX6_ROOT/data/<dataset>/raw/.
+#
+#   study   libraries modelled together; counting spans every dataset of a study
+#   batch   the batch covariate within a study (unique within a study)
+#   layout  PE or SE, or auto until measured
+#   strand  featureCounts -s value 0/1/2, or auto until measured. The strand
+#           check in every run must agree with this value or counting stops.
+#
+# Adding data = one new row here, committed to git. No script is edited.
+dataset	study	batch	layout	strand	description
+Lauderdale_2025	Lauderdale	2025	PE	0	27 libraries: 13 cornea, 14 trigeminal; 2 x 150 bp
+Lauderdale_2026	Lauderdale	2026	PE	0	21 cornea libraries; Novogene X202SC26055473; 2 x 150 bp
+Duncan_GSE183742	Duncan	GSE183742	PE	2	6 adult cornea libraries, Pax6 tm1Pgr; GEO GSE183742; ribo-depleted, 2 x 101 bp

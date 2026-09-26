@@ -1,0 +1,30 @@
+# Genome assemblies available to the pipeline.
+#
+# Select one per run:   PAX6_ASSEMBLY=GRCm39 sbatch align_batch.sh <study> <batch>
+# Default is the first uncommented row.
+#
+# ASSEMBLY IS A PROPERTY OF A COUNT MATRIX, NOT OF A BATCH.
+#   BAMs are written to <mapping_root>/<assembly>/, so the same libraries can
+#   exist against several assemblies at once without colliding. Counting reads
+#   from one assembly's directory and records which, so a matrix can never
+#   contain a mixture.
+#
+# ANNOTATION MUST MATCH THE ASSEMBLY.
+#   GENCODE vM25 is the last release built on GRCm38. Anything later is on
+#   GRCm39. Pairing an annotation with the wrong assembly produces coordinates
+#   that silently do not correspond to genes.
+#
+# INDEX TYPE IS A CONFOUND WHEN COMPARING ASSEMBLIES.
+#   The GRCm38 index is transcript-aware (splice sites and exons built in) but
+#   carries NO SNPs, despite its directory name `genome_snp_tran`. Checked
+#   2026-09-25 with hisat2-inspect: 0 SNPs, 274,187 splice sites. The VCF
+#   offered at build time used Ensembl chromosome names (1, 2, ...) and the
+#   FASTA GENCODE names (chr1, chr2, ...), so the SNP extractor matched nothing
+#   and skipped every variant without an error. A plain GRCm39 index differs
+#   from it only in having no splice sites built in, which
+#   --known-splicesite-infile supplies at alignment time. Record index_type
+#   either way.
+#
+# assembly	ref_dir	genome_fasta	annotation	index_prefix	index_type
+GRCm38	/work/jdllab/PAX6_RNAseq/reference/GRCm38	GRCm38.primary_assembly.genome.fa	gencode.vM25.annotation.gtf	genome_snp_tran/genome_snp_tran	ss_exon
+GRCm39	/work/jdllab/PAX6_RNAseq/reference/GRCm39	GRCm39.primary_assembly.genome.fa	gencode.vM37.annotation.gtf	genome_tran/genome_tran	tran

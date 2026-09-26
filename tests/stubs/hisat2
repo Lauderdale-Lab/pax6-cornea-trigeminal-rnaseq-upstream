@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Test stand-in for HISAT2: writes a summary file and a one-read SAM to stdout.
+while (( $# )); do
+  case "$1" in --summary-file) sum="$2"; shift 2 ;; --known-splicesite-infile) ss="$2"; shift 2 ;; *) shift ;; esac
+done
+[[ -s "${ss:-}" ]] || { echo "stub hisat2: no splice-site file" >&2; exit 1; }
+echo "Overall alignment rate: 97.00%" > "$sum"
+printf '@SQ\tSN:chr1\tLN:1000\nr1\t0\tchr1\t1\t60\t4M\t*\t0\t0\tACGT\tIIII\n'

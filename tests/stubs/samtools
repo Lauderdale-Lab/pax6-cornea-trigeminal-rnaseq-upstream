@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Test stand-in for samtools: sort copies stdin, index touches .bai,
+# view -c reports paired reads, quickcheck always passes.
+case "$1" in
+  sort)  while (( $# )); do [[ "$1" == -o ]] && { out="$2"; shift; }; shift; done; cat > "$out" ;;
+  index) for a in "$@"; do [[ "$a" == *.bam ]] && echo idx > "$a.bai"; done ;;
+  view)  echo 10 ;;
+  *)     exit 0 ;;
+esac

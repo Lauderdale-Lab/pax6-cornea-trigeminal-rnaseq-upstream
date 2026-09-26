@@ -1,0 +1,36 @@
+# Pinned Lmod module versions for the PAX6 RNA-seq pipeline.
+#
+# Recorded from job 46769402 (6-9 July 2026), which produced the BAMs both
+# existing batches are counted from.
+#
+# WHY THIS FILE EXISTS
+#   The earlier scripts hard-coded some modules and loaded "the latest
+#   available version" of others, and no log recorded which ran. At Subread
+#   2.0.2 the meaning of `-p` changed from "count fragments" to "the input
+#   contains paired-end reads". The old counting command was written for the
+#   earlier meaning and ran under Subread 2.0.6 in both batches. The result was
+#   a count matrix of reads rather than fragments, in which -B and -C never
+#   took effect, and it was not noticed for months.
+#
+#   A pinned version that fails loudly when unavailable is strictly better than
+#   a floating version that succeeds quietly.
+#
+# CHANGING A PIN
+#   Change it deliberately, then RE-COUNT EVERY BATCH so that one software
+#   version applies to the whole matrix. Never edit this file to make a job
+#   start; if a module has been retired from the cluster, that is a decision
+#   point, not an obstacle.
+#
+# tool	module_version
+HISAT2	2.2.1-gompi-2023a
+# SAMtools must share HISAT2's and Subread's GCC 12.3.0 toolchain. The
+# 1.23.1-GCC-13.3.0 build swaps GCC underneath HISAT2 when both are loaded
+# (Lmod warning seen 2026-09-25). SAMtools only sorts, indexes and checks BAMs,
+# so its version does not affect counts.
+SAMtools	1.18-GCC-12.3.0
+Subread	2.0.6-GCC-12.3.0
+Trimmomatic	0.39-Java-17
+# FastQC and MultiQC pinned 2026-09-25 to the newest versions on Sapelo2.
+# MultiQC 1.28 is the version that produced the 2026 batch's report.
+FastQC	0.12.1-Java-11
+MultiQC	1.28-foss-2024a

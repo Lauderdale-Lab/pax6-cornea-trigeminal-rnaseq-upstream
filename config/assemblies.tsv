@@ -1,0 +1,16 @@
+# Genome builds. A run uses exactly one, fixed when the run is created.
+# Paths are relative to $PAX6_ROOT/reference/<assembly>/.
+#
+# ANNOTATION MUST MATCH THE ASSEMBLY, including chromosome naming (chr1 vs 1).
+#   GENCODE vM25 is the last release on GRCm38.
+#
+# index_type records what the index really contains, checked with
+#   hisat2-inspect --snp <prefix> | wc -l   and   hisat2-inspect --ss <prefix> | wc -l
+#   plain    = neither SNPs nor splice sites built in
+#   ss_exon  = splice sites and exons built in, no SNPs
+#   snp_tran = both
+# The GRCm38 index is ss_exon (0 SNPs, 274,187 splice sites; checked
+# 2026-09-25) despite its directory name.
+assembly	genome_fasta	annotation	index_prefix	index_type
+GRCm38	GRCm38.primary_assembly.genome.fa	gencode.vM25.annotation.gtf	genome_snp_tran/genome_snp_tran	ss_exon
+GRCm39	GRCm39.primary_assembly.genome.fa	gencode.vM37.annotation.gtf	genome_tran/genome_tran	plain

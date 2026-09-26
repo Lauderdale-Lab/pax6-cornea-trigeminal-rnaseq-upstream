@@ -1,0 +1,15 @@
+# Pinned Lmod modules. Copied into each run when the run is created, so a run
+# keeps its versions even if this file changes later.
+#
+# Change a pin deliberately, in its own commit, and start a new run. Never
+# change one just to make a job start: a retired module is a decision point.
+#
+# HISAT2, SAMtools and Subread share the GCC 12.3.0 toolchain so they can be
+# loaded together. Subread >= 2.0.2 needs --countReadPairs to count fragments.
+tool	module
+FastQC	FastQC/0.12.1-Java-11
+Trimmomatic	Trimmomatic/0.39-Java-17
+MultiQC	MultiQC/1.28-foss-2024a
+HISAT2	HISAT2/2.2.1-gompi-2023a
+SAMtools	SAMtools/1.18-GCC-12.3.0
+Subread	Subread/2.0.6-GCC-12.3.0

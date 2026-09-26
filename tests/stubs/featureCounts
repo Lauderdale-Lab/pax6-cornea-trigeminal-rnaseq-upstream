@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Test stand-in for featureCounts: writes a two-gene matrix and a summary for
+# the BAMs given. FC_STUB_LOW=1 makes assignment look like a strand error.
+[[ "${1:-}" == -v ]] && { echo "featureCounts v2.0.6"; exit 0; }
+out=""; bams=()
+while (( $# )); do
+  case "$1" in
+    -o) out="$2"; shift 2 ;;
+    -s) strand="$2"; shift 2 ;;
+    -T|-a|-F|-t|-g|-Q) shift 2 ;;
+    *.bam) bams+=("$1"); shift ;;
+    *) shift ;;
+  esac
+done
+{ echo "# Program:featureCounts v2.0.6; Command: stub"
+  printf 'Geneid\tChr\tStart\tEnd\tStrand\tLength'; printf '\t%s' "${bams[@]}"; echo
+  printf 'ENSMUSG00000027168.21\tchr2\t1\t2\t+\t2'; for _ in "${bams[@]}"; do printf '\t%s' 100; done; echo
+  printf 'ENSMUSG00000000001.4\tchr3\t1\t2\t-\t2';  for _ in "${bams[@]}"; do printf '\t%s' 5; done; echo
+} > "$out"
+a=900; nf=50; [[ -n "${FC_STUB_LOW:-}" ]] && { a=500; nf=500; }
+# An unstranded library: -s 1 and -s 2 each keep about half of -s 0
+[[ "${strand:-0}" != 0 ]] && { a=450; nf=500; }
+{ printf 'Status'; printf '\t%s' "${bams[@]}"; echo
+  printf 'Assigned';              for _ in "${bams[@]}"; do printf '\t%s' "$a"; done; echo
+  printf 'Unassigned_NoFeatures'; for _ in "${bams[@]}"; do printf '\t%s' "$nf"; done; echo
+  printf 'Unassigned_MappingQuality'; for _ in "${bams[@]}"; do printf '\t%s' 50; done; echo
+} > "$out.summary"

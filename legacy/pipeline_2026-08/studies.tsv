@@ -1,0 +1,28 @@
+# PAX6 RNA-seq study and batch inventory.
+#
+# THE ONLY FILE YOU EDIT WHEN DATA ARRIVES.
+#
+# Columns, tab separated:
+#   study        libraries that belong in ONE statistical model, and therefore
+#                in one count matrix. Counting is scoped to a study.
+#   batch        sequencing batch within that study. Becomes the `batch`
+#                covariate. Unique within a study.
+#   layout       PE or SE. Determines whether fragments or reads are counted.
+#                `auto` until measured -- strand_check.sh reports it.
+#   strand       featureCounts -s value: 0, 1, 2, or `auto` until measured.
+#                NEVER assume this, not even from the same vendor.
+#   trimmed_dir  trimmed FASTQs for this batch ( - if not applicable)
+#   mapping_dir  where this batch's BAMs live
+#
+# WHY STUDY AND BATCH ARE DIFFERENT COLUMNS
+#   Lauderdale_2025 and Lauderdale_2026 are two batches of one study: same
+#   alleles, same design, batch fitted as a covariate. GSE183742 is a separate
+#   study -- adult cornea from the Duncan lab carrying Pax6^tm1Pgr, not
+#   Pax6^Sey-Neu. It is quantified identically so the results are comparable,
+#   and modelled separately because the allele differs. Counting them into one
+#   matrix would imply a comparison the design does not support.
+#
+# study	batch	layout	strand	trimmed_dir	mapping_dir
+Lauderdale	2025	PE	0	/work/jdllab/PAX6_RNAseq/data/Lauderdale_2025/trimmed	/work/jdllab/PAX6_RNAseq/data/Lauderdale_2025/align
+Lauderdale	2026	PE	0	/work/jdllab/PAX6_RNAseq/data/Lauderdale_2026/trimmed	/work/jdllab/PAX6_RNAseq/data/Lauderdale_2026/align
+Duncan	GSE183742	PE	2	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/trimmed	/work/jdllab/PAX6_RNAseq/data/Duncan_GSE183742/align

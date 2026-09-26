@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Test stand-in for sbatch: records the call, prints a job id.
+n=$(( $(wc -l < "${SBATCH_LOG:-/dev/null}" 2>/dev/null || echo 0) + 1000 ))
+echo "$*" >> "${SBATCH_LOG:-/dev/null}"
+echo "$n"

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Test stand-in for Trimmomatic (java -jar trimmomatic.jar PE|SE ...): copies
+# input reads to the output names and logs the ILLUMINACLIP argument.
+shift 2  # -jar <jar>
+mode="$1"; shift
+files=()
+for a in "$@"; do
+  case "$a" in -threads|-phred33) ;; ILLUMINACLIP:*) echo "$a" >> "${TRIM_LOG:-/dev/null}" ;; *:*) ;; [0-9]*) ;; *) files+=("$a") ;; esac
+done
+if [[ "$mode" == PE ]]; then
+  cp "${files[0]}" "${files[2]}"; cp "${files[1]}" "${files[4]}"
+  printf '' | gzip -c > "${files[3]}"; printf '' | gzip -c > "${files[5]}"
+  echo "Input Read Pairs: 1 Both Surviving: 1 (100.00%)" >&2
+else
+  cp "${files[0]}" "${files[1]}"; echo "Input Reads: 1 Surviving: 1 (100.00%)" >&2
+fi
