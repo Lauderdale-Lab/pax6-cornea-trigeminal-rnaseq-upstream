@@ -30,19 +30,22 @@ rm -f "$BAM" "$BAM.bai"
 [[ -s "$ANNOTATION" ]]           || die "Annotation not found: $ANNOTATION"
 [[ -f "$TRIM/$SAMPLE.done" ]]    || die "Trimming not complete for $SAMPLE (no $TRIM/$SAMPLE.done)"
 
-# Known splice sites from the annotation, extracted once per run. Array tasks
-# start together, so the first to take the lock writes the file.
+# Known splice sites from the annotation, one file per run. Array tasks start
+# together on different nodes, and file locks do not work across nodes on
+# /work, so each task that finds no file writes its OWN temporary copy and
+# renames it into place. A rename is atomic, and every task writes identical
+# content, so whichever lands last is still correct.
 SPLICE="$RUN_DIR/reference/splice_sites.txt"
 mkdir -p "$RUN_DIR/reference"
-(
-  flock 9
-  if [[ ! -s "$SPLICE" ]]; then
-    PY=$(find "$(dirname "$(command -v hisat2)")/.." -name hisat2_extract_splice_sites.py 2>/dev/null | head -n1)
-    [[ -n "$PY" ]] || die "hisat2_extract_splice_sites.py not found beside hisat2"
-    python3 "$PY" "$ANNOTATION" > "$SPLICE.tmp" && mv "$SPLICE.tmp" "$SPLICE"
-    log "splice sites: $(wc -l < "$SPLICE") from $(basename "$ANNOTATION")"
-  fi
-) 9> "$SPLICE.lock"
+if [[ ! -s "$SPLICE" ]]; then
+  PY=$(find "$(dirname "$(command -v hisat2)")/.." -name hisat2_extract_splice_sites.py 2>/dev/null | head -n1)
+  [[ -n "$PY" ]] || die "hisat2_extract_splice_sites.py not found beside hisat2"
+  TMP_SS="$SPLICE.tmp.${SLURM_JOB_ID:-$$}.${SLURM_ARRAY_TASK_ID:-0}"
+  python3 "$PY" "$ANNOTATION" > "$TMP_SS"
+  [[ -s "$TMP_SS" ]] || { rm -f "$TMP_SS"; die "Splice-site extraction produced an empty file"; }
+  mv -f "$TMP_SS" "$SPLICE"
+  log "splice sites: $(wc -l < "$SPLICE") from $(basename "$ANNOTATION")"
+fi
 [[ -s "$SPLICE" ]] || die "Splice-site file is empty: $SPLICE"
 
 if [[ "$R2" != - ]]; then READS=(-1 "$TRIM/${SAMPLE}_1.fq.gz" -2 "$TRIM/${SAMPLE}_2.fq.gz")
