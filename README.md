@@ -20,7 +20,7 @@ bin/pax6 check                                   # config, data, reference, modu
 bin/pax6 new-run reprocess_2026-10               # a run = one commit, one genome build
 bin/pax6 submit  reprocess_2026-10 Lauderdale_2025 Lauderdale_2026 Duncan_GSE183742
 bin/pax6 status  reprocess_2026-10
-bin/pax6 count   reprocess_2026-10 Lauderdale    # after the strand checks agree
+bin/pax6 count   reprocess_2026-10 Lauderdale    # waits for the strand checks
 ```
 
 `submit` queues four chained SLURM jobs per dataset:
@@ -94,7 +94,7 @@ tools/
   make_test_dataset.sh        a few-minute test dataset from real libraries
   verify_md5.sh               check raw FASTQ against vendor checksums
   keep_run.sh                 copy a run's results (optionally BAMs) from scratch to /work
-tests/run_tests.sh        71 tests; no cluster needed (stand-ins in tests/stubs/)
+tests/run_tests.sh        75 tests; no cluster needed (stand-ins in tests/stubs/)
 docs/                     RUNBOOK.md, LAYOUT.md, PROVENANCE_template.md
 legacy/                   the scripts that produced the published data; not for running
 ```
