@@ -132,8 +132,13 @@ FASTQC_STUB_ADAPTER=1 expect_ok "trim task 2 (adapter present)" J 2 qc_trim.sbat
 grep -q $'TruSeq3_default' "$D26/qc/adapters/A_CU4_adapter_source.tsv" && grep -q $'detected' "$D26/qc/adapters/A_CW3_adapter_source.tsv" && ok "adapter source recorded (default vs detected)" || bad "adapter source"
 grep -q ':2:30:10:2:True$' "$TRIM_LOG" && ok "published ILLUMINACLIP settings used" || bad "clip settings" "$(cat "$TRIM_LOG")"
 out=$(J 1 qc_trim.sbatch 2>&1); grep -q "already trimmed and verified" <<<"$out" && ok "resubmitted trim task skips verified output" || bad "trim resume" "$out"
-expect_ok "align task 1" J 1 align.sbatch
-expect_ok "align task 2" J 2 align.sbatch
+# The two tasks start together, as array tasks do on the cluster. They once
+# raced on one temporary splice-site file and the second failed.
+J 1 align.sbatch > "$T/a1.log" 2>&1 & p1=$!
+J 2 align.sbatch > "$T/a2.log" 2>&1 & p2=$!
+if wait "$p1"; then ok "align task 1 (concurrent)"; else bad "align task 1" "$(cat "$T/a1.log")"; fi
+if wait "$p2"; then ok "align task 2 (concurrent)"; else bad "align task 2" "$(cat "$T/a2.log")"; fi
+[[ -z "$(find "$PAX6_ROOT/runs/R1/reference" -name '*.tmp*')" ]] && ok "no temporary splice-site files left" || bad "splice tmp leftovers"
 [[ -s "$D26/align/A_CU4.bam" && -s "$D26/align/A_CU4.bam.bai" && ! -e "$D26/align/A_CU4.bam.tmp" ]] && ok "BAM + index written under final name" || bad "align outputs" "$(ls "$D26/align")"
 [[ -s "$PAX6_ROOT/runs/R1/reference/splice_sites.txt" ]] && ok "splice sites extracted once per run" || bad "splice sites"
 out=$(J 1 align.sbatch 2>&1); grep -q "verified; nothing to do" <<<"$out" && ok "resubmitted align task skips verified BAM" || bad "align resume" "$out"
