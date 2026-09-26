@@ -114,6 +114,15 @@ git -C "$T/repo" -c user.name=t -c user.email=t@t commit -qam data
 : > "$SBATCH_LOG"
 expect_ok "datasets.tsv edits are allowed mid-run" "$P" submit R1 Duncan_GSE183742
 
+echo "== count waits for strand checks still running"
+SJ=$(awk -F'\t' '$2 == "Duncan_GSE183742" { id = $5 } END { print id }' "$PAX6_RUNS/R1/jobs.tsv")
+: > "$SBATCH_LOG"
+SQUEUE_ACTIVE="$SJ" expect_ok "count submitted while a strand check runs" "$P" count R1 Duncan
+grep -q -- "--dependency=afterok:$SJ" "$SBATCH_LOG" && ok "count depends on the running strand check" || bad "no dependency" "$(cat "$SBATCH_LOG")"
+: > "$SBATCH_LOG"
+expect_ok "count submitted after strand checks finished" "$P" count R1 Duncan
+! grep -q -- "--dependency" "$SBATCH_LOG" && ok "no dependency on jobs that have already finished" || bad "stale dependency" "$(cat "$SBATCH_LOG")"
+
 echo "== trim, align, strand check and MultiQC jobs, end to end on stand-in tools"
 export EBROOTTRIMMOMATIC="$T/trimmomatic" TRIM_LOG="$T/trim.log"
 mkdir -p "$EBROOTTRIMMOMATIC/adapters"; echo jar > "$EBROOTTRIMMOMATIC/trimmomatic-0.39.jar"

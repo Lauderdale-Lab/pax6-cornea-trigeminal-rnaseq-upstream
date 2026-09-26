@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Test stand-in for squeue -h -j <id> -o %i: prints the id when it is listed
+# in SQUEUE_ACTIVE (space-separated), i.e. still queued or running.
+while (( $# )); do [[ "$1" == -j ]] && { id="$2"; shift; }; shift; done
+for a in ${SQUEUE_ACTIVE:-}; do [[ "$a" == "${id:-}" ]] && echo "$id"; done
+exit 0

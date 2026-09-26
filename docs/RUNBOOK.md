@@ -83,9 +83,12 @@ bin/pax6 submit  $RUN Lauderdale_2025 Lauderdale_2026 Duncan_GSE183742
 bin/pax6 status  $RUN
 ```
 
-When every dataset shows a strand result, read its log
-(`/scratch/$USER/PAX6_RNAseq/runs/$RUN/logs/strand_<dataset>_*.out`). It prints `AGREE` or `DISAGREE`
-against `config/datasets.tsv`. Then:
+`count` can be submitted at any time after `submit`: it waits for any strand
+check of the study that is still queued or running. It stops cleanly if a
+strand check failed, or if a measured strand disagrees with
+`config/datasets.tsv`. Each strand log
+(`/scratch/$USER/PAX6_RNAseq/runs/$RUN/logs/strand_<dataset>_*.out`) prints
+`AGREE` or `DISAGREE`. To count:
 
 ```bash
 bin/pax6 count $RUN Lauderdale

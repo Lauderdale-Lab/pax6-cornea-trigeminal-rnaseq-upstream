@@ -173,7 +173,22 @@ cmd_submit() {
 cmd_count() {
   local r="${1:?usage: pax6 count <run> <study>}"; STUDY="${2:?usage: pax6 count <run> <study>}"
   load_run "$r"; check_run_commit; require_study "$STUDY"
-  local j; j=$(sb --job-name="count_$STUDY" --output="$RUN_DIR/logs/count_${STUDY}_%j.out" "$PAX6_HOME/slurm/count.sbatch")
+  # Wait for any strand check of this study that is still queued or running.
+  # Only jobs SLURM still knows about can be depended on; one that has already
+  # finished needs no waiting, and if it failed, count.sbatch stops cleanly on
+  # the missing result.
+  local ds id wait=() dep=()
+  for ds in $(study_datasets "$STUDY"); do
+    [[ -f "$RUN_DIR/jobs.tsv" ]] || break
+    for id in $(awk -F'\t' -v d="$ds" '$2 == d { print $5 }' "$RUN_DIR/jobs.tsv"); do
+      [[ -n "$(squeue -h -j "$id" -o %i 2>/dev/null || true)" ]] && wait+=("$id")
+    done
+  done
+  if (( ${#wait[@]} )); then
+    dep=(--dependency="afterok:$(IFS=:; echo "${wait[*]}")")
+    log "count waits for strand check job(s) still running: ${wait[*]}"
+  fi
+  local j; j=$(sb --job-name="count_$STUDY" "${dep[@]}" --output="$RUN_DIR/logs/count_${STUDY}_%j.out" "$PAX6_HOME/slurm/count.sbatch")
   log "count $STUDY: job $j  ->  $(counts_dir "$STUDY")"
 }
 
