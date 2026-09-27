@@ -13,6 +13,8 @@ cluster. Its count matrices are the shared input to three analyses:
 James D. Lauderdale, PhD — Department of Cellular Biology, University of
 Georgia, Athens, GA 30602, USA.
 
+Repository: <https://github.com/Lauderdale-Lab/pax6-cornea-trigeminal-rnaseq-upstream> · Archived releases: [10.5281/zenodo.22998975](https://doi.org/10.5281/zenodo.22998975) (all versions; v1.0.0 is [10.5281/zenodo.22998976](https://doi.org/10.5281/zenodo.22998976)) · Contact: James D. Lauderdale, <jdlauder@uga.edu>
+
 ## In one screen
 
 ```bash
